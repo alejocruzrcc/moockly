@@ -1,0 +1,12 @@
+name: shinyapp
+title:
+username:
+account: learningpath
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1603801
+bundleId: 2680778
+url: https://learningpath.shinyapps.io/shinyapp/
+when: 1576758579.44627
+asMultiple: FALSE
+asStatic: FALSE
