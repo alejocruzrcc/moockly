@@ -1,17 +1,25 @@
 shinyUI(
   fluidPage(
-    titlePanel("Learner Paths"),
+    
+    titlePanel("Moockly"),
+    sidebarLayout( 
+      sidebarPanel(
+        uiOutput('weeksData'),
+        uiOutput('studentsData'),
+        uiOutput('sesionesData'),
+    actionButton("submit", label = "Mostrar Ruta")
+    ),
+      mainPanel(
+        tabsetPanel(type = "tabs",
+                    tabPanel("Análisis",
+                      visNetworkOutput("network")
+                    ),
+                    tabPanel("Estadísticas",
+                      tableOutput("datos")
+                    )
+                    )
+        )
 
-      visNetworkOutput("network"),
-      hr(),
-      fluidRow(
-        column(4, offset = 1,
-               uiOutput('sesionesData'),
-               actionButton("submit", label = "Filtrar")
-        ),
-        column(4, offset = 1,
-               tableOutput("datos")
-        ),
       )
-  )
+    )
 )

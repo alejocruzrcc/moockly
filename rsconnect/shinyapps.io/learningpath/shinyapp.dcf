@@ -5,8 +5,9 @@ account: learningpath
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1603801
-bundleId: 2680778
+bundleId: 2736422
 url: https://learningpath.shinyapps.io/shinyapp/
-when: 1576758579.44627
+when: 1579292095.36742
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: edges_all.csv|edges_e173.csv|edges_e178.csv|edges_e382.csv|ex2.R|exx.R
