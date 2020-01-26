@@ -1,16 +1,19 @@
 rm(list = ls())
 
 # Libraries ---------------------------------------------------------------
+#library(visNetwork)
+devtools::install_github("datastorm-open/visNetwork")
+library(rpart)
 library(shiny)
-library(visNetwork)
 library(geomnet)
 library(igraph)
 library(rsconnect)
 library(dplyr)
+library(tidyr)
 library(shinydashboard)
-# Load the package required to read XML files.
 library("XML")
 library("methods")
 library(xml2)
 library(hash)
 library(DT)
+  
