@@ -1,8 +1,8 @@
 rm(list = ls())
 
 # Libraries ---------------------------------------------------------------
-#library(visNetwork)
-devtools::install_github("datastorm-open/visNetwork")
+library(shinythemes)
+library(visNetwork)
 library(rpart)
 library(shiny)
 library(geomnet)

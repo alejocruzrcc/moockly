@@ -24,19 +24,22 @@ shinyServer(function(input, output, session) {
                        File=character(), 
                        User=character(), 
                        stringsAsFactors=FALSE) 
-  #mh <- xmlTreeParse("course/course/2019-II.xml", getDTD = F)
-  #rootmhdoc <- xmlRoot(mh)
-  #nodesxml <- xmlChildren(rootmhdoc)
-  #url <- xml_attr(nodesxml[c("chapter")], "url_name")
-  #print(nodesxml[1])
-  for(i in 1:length(modulos)){
-    modfile <- read_xml(paste("course/chapter/",modulos[[i]],".xml",sep = "", collapse = NULL))
+  mh <- read_xml(paste("course/course/2019-II.xml", sep= "", collapse = NULL))
+  #print(xml_attr(mh, "url_name"))
+  nombrecurso <- xml_attr(mh, "display_name")
+  modulosxml <- as.array(xml_attr(xml_children(mh), "url_name"))
+  modulosxml <- modulosxml[!is.na(modulosxml)]
+  modulosxml <- head(modulosxml, -2)
+  modulosxml <- modulosxml[-1]
+  
+  for(i in modulosxml){
+    modfile <- read_xml(paste("course/chapter/", i ,".xml",sep = "", collapse = NULL))
     modleido <- xml_attr(modfile, "display_name")
-    dicmod = rbind(dicmod, data.frame(key = modulos[[i]], label = modleido))
+    dicmod = rbind(dicmod, data.frame(key = i, label = modleido))
   }
   
-  moduloshash  <- hash(dicmod$label, dicmod$key) #Un diccionario de codigo de modulos y su valor
-
+  moduloshash  <- hash(keys= dicmod$label, values= dicmod$key) #Un diccionario de codigo de modulos y su valor
+  
   ## Input de selección de modulos
   output$weeksData = renderUI({
     labels <- array(dicmod[,2])
@@ -47,7 +50,9 @@ shinyServer(function(input, output, session) {
   df_subset <- eventReactive(input$weeks,{
     if(input$weeks=="--") {df_subset <- edgesvacio}
     else{
-      df_subset <- edges[edges$week == moduloshash[[input$weeks]],]}
+      semseleccionada <- input$weeks
+      df_subset <- edges[edges$week == toString(moduloshash[[ semseleccionada ]]),]
+      }
   })
   
   ## input de  seleccion de estudiantes según modulo seleccionado
@@ -92,14 +97,19 @@ shinyServer(function(input, output, session) {
   })
   
   output$datos <- renderTable({
-    dicmod
+    df_subset2()
   })
   
   #Create graph for Louvain
   graph <- graph_from_data_frame(edges, nodes, directed = FALSE)
   
-  
+
   muestra <- eventReactive( input$submit, {
+    nodesfrom <- unique(c(as.vector(df_subset2()$from), as.vector(df_subset2()$to))) 
+    #nodesfrom <- as.vector(df_subset2()$from)
+    #nodesto <- as.vector(df_subset2()$to)
+    nodes <- nodes %>% filter(id %in% nodesfrom)
+    #nodes <- nodes %>% filter(id %in% nodesto)
     groupsnodes <- unique(nodes[,"group"])
     visNetwork(nodes, df_subset2(), width = "100%") %>%
       visEdges(shadow = TRUE, arrows ="to", color = "#0085AF") %>%
@@ -110,6 +120,12 @@ shinyServer(function(input, output, session) {
   
   output$network <- renderVisNetwork({
     muestra()
+  })
+  nombre <- eventReactive( input$submit, {
+    nombrecurso
+  })
+  output$nombreCurso <- renderText({
+    nombre()
   })
   
   
