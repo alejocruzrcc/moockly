@@ -2,16 +2,14 @@ shinyServer(function(input, output, session) {
   
   # Data Preparation --------------------------------------------------------
   
-  #Load dataset
+  #Load dataset x modulos
   nodos <- read.csv(file = "nodos.csv")
   aristas <- as.data.frame(read.csv2(file = "completo.csv"))
+  
   
   #Nodes
   nodes <- as.data.frame(nodos)
   colnames(nodes) <- c("id", "label", "group")
-  
-  #id has to be the same like from and to columns in edges
-  #nodes$id <- nodes$label
   
   #Edges  
   edges <- aristas
@@ -79,7 +77,8 @@ shinyServer(function(input, output, session) {
   output$sesionesData = renderUI({
     if(input$students != "--" && input$weeks != "--"){
       sesioneshash  <- hash(dicses()$label, dicses()$key)
-      labels <- array(dicses()[,2])}
+      labels <- array(dicses()[,2])
+      }
     else{
       labels <- c(sort(unique(as.character(df_subset1()$session))))
     }
@@ -105,15 +104,17 @@ shinyServer(function(input, output, session) {
   
 
   muestra <- eventReactive( input$submit, {
-    nodesfrom <- unique(c(as.vector(df_subset2()$from), as.vector(df_subset2()$to))) 
-    #nodesfrom <- as.vector(df_subset2()$from)
-    #nodesto <- as.vector(df_subset2()$to)
-    nodes <- nodes %>% filter(id %in% nodesfrom)
-    #nodes <- nodes %>% filter(id %in% nodesto)
+    nodesfromto <- unique(c(as.vector(df_subset2()$from), as.vector(df_subset2()$to))) # valores unicos de nodos en graf generado 
+    nodes <- nodes %>% filter(id %in% nodesfromto) #Filra el archivo de nodos con los valores unicos encontrados
     groupsnodes <- unique(nodes[,"group"])
     visNetwork(nodes, df_subset2(), width = "100%") %>%
-      visEdges(shadow = TRUE, arrows ="to", color = "#0085AF") %>%
+      visEdges(shadow = TRUE, arrows ="to", color = "#22252C") %>%
       visOptions(highlightNearest = list(enabled = T, hover = T)) %>%
+      visGroups(groupname = "Video", color = "#1FB58F", shadow = list(enabled = TRUE)) %>%
+      visGroups(groupname = "Quiz", color = "#EAB126", shadow = list(enabled = TRUE)) %>%
+      visGroups(groupname = "Singin", color = "#1B7B34", shadow = list(enabled = TRUE)) %>%
+      visGroups(groupname = "Singout", color = "#F24C4E", shadow = list(enabled = TRUE)) %>%
+      visGroups(groupname = "Other", color = "#D98041", shadow = list(enabled = TRUE)) %>%
       visClusteringByGroup(groups = groupsnodes, label = "Grupo: ") %>%
       addFontAwesome()
   })
@@ -128,5 +129,85 @@ shinyServer(function(input, output, session) {
     nombre()
   })
   
+  ### PARA TOTALES ###
   
+  #Load dataset totales
+  nodosT <- read.csv2(file = "nodosT.csv")
+  aristasT <- as.data.frame(read.csv(file = "completoT.csv"))
+  
+  #Nodes
+  nodesT <- as.data.frame(nodosT)
+  colnames(nodesT) <- c("id", "label")
+  
+  #Edges  
+  edgesT <- aristasT
+  colnames(edgesT) <- c("from", "to", "label", "sectionsource", "sectiontarget", "student", "session", "datetime", "title")
+  
+
+  ## input de  seleccion de estudiantes según modulo seleccionado
+  output$studentsDataTotales <- renderUI({
+    estudiantesT <- c("--", sort(as.character(unique(edgesT$student))))
+    selectInput('studentsT', 'Estudiante:', choices = estudiantesT)
+  })
+  
+  ## Actualiza dataframe correspondiente al estudiante seleccionado
+  df_subtotal <- reactive({
+    if(is.null(input$students)){edgesvacio} else {edgesT[edgesT$student %in% input$studentsT,]}
+  })
+  
+
+  ## input de seleccion de sesion según el estudiante seleccionado 
+  dicsesT <- reactive({
+    
+    iniciales <- filter(df_subtotal(), from == 'Signin')
+    finales <- filter(df_subtotal(), to == 'Signout')
+    inicialesfinales <- paste(array(iniciales[,"datetime"]), array(finales[,"datetime"]), sep=" --> ")
+    dicses = data.frame(key = array(iniciales[, "session"]), label = c(inicialesfinales))
+    return(dicses)
+    
+  })
+  
+  output$sesionesDataTotales = renderUI({
+    if(input$studentsT != "--"){
+      sesioneshash  <- hash(dicsesT()$label, dicsesT()$key)
+      labelsT <- array(dicsesT()[,2])}
+    else{
+      labelsT <- c(sort(unique(as.character(df_subtotal()$session))))
+    }
+    selectInput('sessionsT', 'Sesión:',  choices = c("--", labelsT) )
+  })
+  
+  #Actualiza dataframe con la sesión seleccionada
+  df_subtotal1 <- reactive({
+    if(is.null(input$sessions)){
+      df_subtotal()} 
+    else {
+      sesioneshash  <- hash(dicsesT()$label, dicsesT()$key)
+      df_subtotal()[df_subtotal()$session %in% sesioneshash[[input$sessionsT]],]
+    }
+  })
+  
+  ##MUESTRA GRAFO DE TOTALES
+  muestraT <- eventReactive( input$submitTotales, {
+    nodesfromto <- unique(c(as.vector(df_subtotal1()$from), as.vector(df_subtotal1()$to))) # valores unicos de nodos en graf generado 
+    nodesT <- nodesT %>% filter(id %in% nodesfromto) #Filra el archivo de nodos con los valores unicos encontrados
+    #groupsnodes <- unique(nodes[,"group"])
+    visNetwork(nodesT, df_subtotal1(), width = "100%") %>%
+      visEdges(shadow = TRUE, arrows ="to", color = "#22252C", title = "Hola") %>%
+      visOptions(highlightNearest = list(enabled = T, hover = T)) %>%
+      #visGroups(groupname = "Video", color = "#1FB58F", shadow = list(enabled = TRUE)) %>%
+      #visGroups(groupname = "Quiz", color = "#EAB126", shadow = list(enabled = TRUE)) %>%
+      #visGroups(groupname = "Singin", color = "#1B7B34", shadow = list(enabled = TRUE)) %>%
+      #visGroups(groupname = "Singout", color = "#F24C4E", shadow = list(enabled = TRUE)) %>%
+      #visGroups(groupname = "Other", color = "#D98041", shadow = list(enabled = TRUE)) %>%
+      #visClusteringByGroup(groups = groupsnodes, label = "Grupo: ") %>%
+      addFontAwesome()
+  })
+  
+  output$networktotales <- renderVisNetwork({
+    muestraT()
+  })
+  output$datostotales <- renderTable({
+    df_subtotal1()
+  })
 })
