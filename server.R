@@ -22,14 +22,26 @@ shinyServer(function(input, output, session) {
                        File=character(), 
                        User=character(), 
                        stringsAsFactors=FALSE) 
+  dicmodC <- data.frame(Date=as.Date(character()),
+                       File=character(), 
+                       User=character(), 
+                       stringsAsFactors=FALSE)
   mh <- read_xml(paste("course/course/2019-II.xml", sep= "", collapse = NULL))
   #print(xml_attr(mh, "url_name"))
   nombrecurso <- xml_attr(mh, "display_name")
   modulosxml <- as.array(xml_attr(xml_children(mh), "url_name"))
   modulosxml <- modulosxml[!is.na(modulosxml)]
+  
+  ## Este for es para el diccionario de modulos completo o sea calific, descripcion etc
+  for(i in modulosxml){
+    modfile <- read_xml(paste("course/chapter/", i ,".xml",sep = "", collapse = NULL))
+    modleido <- xml_attr(modfile, "display_name")
+    dicmodC = rbind(dicmodC, data.frame(key = i, label = modleido))
+  }
   modulosxml <- head(modulosxml, -2)
   modulosxml <- modulosxml[-1]
   
+  ## Este for es para el diccionario de modulos del curso sin contar intro , cal etc
   for(i in modulosxml){
     modfile <- read_xml(paste("course/chapter/", i ,".xml",sep = "", collapse = NULL))
     modleido <- xml_attr(modfile, "display_name")
@@ -137,20 +149,34 @@ shinyServer(function(input, output, session) {
   
   #Nodes
   nodesT <- as.data.frame(nodosT)
-  colnames(nodesT) <- c("id", "label")
+  colnames(nodesT) <- c("id", "label", "group")
+  moduloshashT  <- hash(keys= dicmodC$key, values= dicmodC$label) #Un diccionario de codigo de modulos y su valor
+  #lo <- length(nodesT[["group"]])-1
+  nod <- c()
+    for(x in unique(nodesT[["group"]])){
+      nm <- x
+      nombremod <- toString(moduloshashT[[ nm ]])
+      if(!is.null(nombremod)){
+       nod <- c(nod, nombremod)
+      }
+      else{
+       nod <- c(nod, x)
+      }
+    }
+    nodesT[["group"]] <- mapvalues(nodesT[["group"]], unique(nodesT[["group"]]), nod)
+    
+    #Edges  
+    edgesT <- aristasT
+    colnames(edgesT) <- c("from", "to", "label", "sectionsource", "sectiontarget", "student", "session", "datetime", "title")
+    
   
-  #Edges  
-  edgesT <- aristasT
-  colnames(edgesT) <- c("from", "to", "label", "sectionsource", "sectiontarget", "student", "session", "datetime", "title")
-  
-
-  ## input de  seleccion de estudiantes según modulo seleccionado
-  output$studentsDataTotales <- renderUI({
-    estudiantesT <- c("--", sort(as.character(unique(edgesT$student))))
-    selectInput('studentsT', 'Estudiante:', choices = estudiantesT)
-  })
-  
-  ## Actualiza dataframe correspondiente al estudiante seleccionado
+    ## input de  seleccion de estudiantes según modulo seleccionado
+    output$studentsDataTotales <- renderUI({
+      estudiantesT <- c("--", sort(as.character(unique(edgesT$student))))
+      selectInput('studentsT', 'Estudiante:', choices = estudiantesT)
+    })
+    
+    ## Actualiza dataframe correspondiente al estudiante seleccionado
   df_subtotal <- reactive({
     if(is.null(input$students)){edgesvacio} else {edgesT[edgesT$student %in% input$studentsT,]}
   })
@@ -191,23 +217,28 @@ shinyServer(function(input, output, session) {
   muestraT <- eventReactive( input$submitTotales, {
     nodesfromto <- unique(c(as.vector(df_subtotal1()$from), as.vector(df_subtotal1()$to))) # valores unicos de nodos en graf generado 
     nodesT <- nodesT %>% filter(id %in% nodesfromto) #Filra el archivo de nodos con los valores unicos encontrados
-    #groupsnodes <- unique(nodes[,"group"])
-    visNetwork(nodesT, df_subtotal1(), width = "100%") %>%
-      visEdges(shadow = TRUE, arrows ="to", color = "#22252C", title = "Hola") %>%
+    groupsnodesT <- unique(nodes[,"group"])
+    colors  <- c("#1FB58F", "#EAB126", "#1B7B34", "#F24C4E", "#D98041")
+    #legends <- data.frame(label = nodesT$group,  shape = "icon", icon = list(code = "f02e", size = 50))
+    grafo <- visNetwork(nodesT, df_subtotal1(), width = "100%") %>%
+      visEdges(shadow = TRUE, arrows ="to", color = "#22252C") %>%
       visOptions(highlightNearest = list(enabled = T, hover = T)) %>%
       #visGroups(groupname = "Video", color = "#1FB58F", shadow = list(enabled = TRUE)) %>%
       #visGroups(groupname = "Quiz", color = "#EAB126", shadow = list(enabled = TRUE)) %>%
       #visGroups(groupname = "Singin", color = "#1B7B34", shadow = list(enabled = TRUE)) %>%
       #visGroups(groupname = "Singout", color = "#F24C4E", shadow = list(enabled = TRUE)) %>%
       #visGroups(groupname = "Other", color = "#D98041", shadow = list(enabled = TRUE)) %>%
-      #visClusteringByGroup(groups = groupsnodes, label = "Grupo: ") %>%
+      #visLegend(addNodes = legends, useGroups = FALSE) %>%
+      visLegend() %>%
       addFontAwesome()
+
   })
   
   output$networktotales <- renderVisNetwork({
     muestraT()
   })
   output$datostotales <- renderTable({
-    df_subtotal1()
+    #df_subtotal1()
+    nodesT
   })
 })

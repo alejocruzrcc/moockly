@@ -2,7 +2,7 @@ shinyUI(
   
   fluidPage(theme = shinytheme("cerulean"),
             navbarPage("Moockly",
-                       tabPanel("Inicio",
+                       tabPanel("Analiza por módulo",
                                 sidebarLayout( 
                                   sidebarPanel(
                                     uiOutput('weeksData'),
@@ -25,7 +25,7 @@ shinyUI(
                                 )
                                 
                        ),
-                       tabPanel("Instrucciones",
+                       tabPanel("Consulta Sesiones",
                                 sidebarLayout( 
                                   sidebarPanel(
                                     uiOutput('studentsDataTotales'),
